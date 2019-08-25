@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "noImplicitAny": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "downlevelIteration": true,
+    "noEmit": true,
+    "lib": ["es2015"],
+    "allowSyntheticDefaultImports": true,
+    "alwaysStrict": true,
+    "strict": true
+  },
+  "include": ["src/**/*", "*.ts", "*.d.ts"],
+  "exclude": ["node_modules", "**/*.spec.ts"]
+}

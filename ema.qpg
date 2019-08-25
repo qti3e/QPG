@@ -1,0 +1,280 @@
+SOURCE :=
+  import_declaration[] declaration[]
+
+import_declaration :=
+  "from" string_literal "import" import_specifiers
+
+import_specifiers :=
+  import_specifier
+  import_specifier "," import_specifiers
+
+import_specifier :=
+  identifier
+  identifier "as" identifier
+  "*" "as" identifier
+
+keyword :=
+  "from"
+  "import"
+  "as"
+  "let"
+  "const"
+  "imp"
+  "fun"
+  "self"
+  "class"
+  "extends"
+  "static"
+  "public"
+  "private"
+  "protected"
+  "readonly"
+  "constructor"
+  "new"
+  "return"
+  "yield"
+  "finish"
+  "if"
+  "for"
+  "in"
+  "has"
+  "continue"
+  "break"
+
+identifier := NOT keyword
+  identifier_word
+
+identifier_word := R /[a-zA-Z_][a-zA-Z0-9_]*/
+
+string_literal :=
+  single_quote
+  double_quote
+
+single_quote := R /'(?:[^'\\]|\\.)*'/
+double_quote := R /"(?:[^"\\]|\\.)*"/
+
+member_access :=
+  identifier
+  identifier ~ "." ~ member_access
+
+declaration :=
+  class_declaration
+  constructor_declaration
+  method_declaration
+  function_declaration
+
+class_declaration :=
+  "class" identifier "{" class_property[] "}"
+  "class" identifier "extends" member_access[] "{" class_property[] "}"
+
+class_property :=
+  cpt member_access identifier ";"
+  cpt cpt member_access identifier ";"
+  cpt cpt cpt member_access identifier ";"
+
+cpt :=
+  "readonly"
+  "static"
+  "public"
+  "protected"
+  "private"
+
+constructor_declaration :=
+  "imp" member_access "constructor" "(" constructor_parameters ")" block
+
+method_declaration :=
+  "imp" member_access identifier "(" parameters ")" ":" member_access block
+
+constructor_parameters :=
+  constructor_parameter
+  constructor_parameter "," constructor_parameters
+
+constructor_parameter :=
+  parameter
+  "self." ~ member_access
+
+parameters :=
+  parameter
+  parameter "," parameters
+
+parameter :=
+  member_access identifier
+
+function_declaration :=
+  "fun" identifier "(" parameters ")" ":" member_access block
+
+block :=
+  "{" statement[] "}"
+
+statement :=
+  base_statement ";"
+  conditional_statement
+  if_statement
+  if_has_statement
+  for_statement
+
+base_statement :=
+  expression_statement
+  return_statement
+  yield_statement
+  finish_statement
+  break_statement
+  continue_statement
+
+conditional_statement :=
+  base_statement "if" expression ";"
+
+if_statement :=
+  "if" expression block
+
+if_has_statement :=
+  "if" expression "has" expression block
+
+for_statement :=
+  "for" identifier "in" expression block
+
+return_statement :=
+  "return"
+  "return" ~~ expression
+
+yield_statement :=
+  "yield" ~~ expression
+
+finish_statement :=
+  "finish"
+
+break_statement :=
+  "break"
+
+continue_statement :=
+  "continue"
+
+expression :=
+  assignment_expression
+
+assignment_expression :=
+  logical_or_expression
+  lhs_expression "=" assignment_expression
+  lhs_expression assignment_operator assignment_expression
+
+assignment_operator :=
+  "*="
+  "/="
+  "+="
+  "-="
+
+logical_or_expression :=
+  logical_and_expression
+  logical_or_expression "||" logical_and_expression
+
+logical_and_expression :=
+  bitwise_or_expression
+  logical_and_expression "&&" bitwise_or_expression
+
+bitwise_or_expression :=
+  bitwise_xor_expression
+  bitwise_or_expression "|" bitwise_xor_expression
+
+bitwise_xor_expression :=
+  bitwise_and_expression
+  bitwise_xor_expression "^" bitwise_and_expression
+
+bitwise_and_expression :=
+  equality_expression
+  bitwise_and_expression "&" equality_expression
+
+equality_expression :=
+  relational_expression
+  equality_expression "==" relational_expression
+  equality_expression "!=" relational_expression
+
+relational_expression :=
+  shift_expression
+  relational_expression "<" shift_expression
+  relational_expression ">" shift_expression
+  relational_expression "<=" shift_expression
+  relational_expression ">=" shift_expression
+
+shift_expression :=
+  additive_expression
+  shift_expression "<<" additive_expression
+  shift_expression ">>" additive_expression
+  shift_expression ">>>" additive_expression
+
+additive_expression :=
+  multiplicative_expression
+  additive_expression "+" multiplicative_expression
+  additive_expression "-" multiplicative_expression
+
+multiplicative_expression :=
+  exponentiation_expression
+  multiplicative_expression "*" exponentiation_expression
+  multiplicative_expression "/" exponentiation_expression
+  multiplicative_expression "%" exponentiation_expression
+
+exponentiation_expression :=
+  unary_expression
+  update_expression "**" exponentiation_expression
+
+unary_expression :=
+  update_expression
+  "+" unary_expression
+  "-" unary_expression
+  "~" unary_expression
+  "!" unary_expression
+
+update_expression :=
+  atomic_expression
+  lhs_expression ~~ "++"
+  lhs_expression ~~ "--"
+  "++" lhs_expression
+  "--" lhs_expression
+
+atomic_expression :=
+  literal
+  lhs_expression
+  self
+  parenthesized_expression
+  new_expression
+  call_expression
+
+literal :=
+  "null"
+  "true"
+  "false"
+  string_literal
+  numeric_literal
+
+numeric_literal :=
+  decimal
+  float
+  binary
+  hexadecimal
+
+decimal := R /[1-9][0-9]*/
+
+float :=
+  decimal ~ "." ~ float_part
+
+float_part := R /[0-9]+/
+
+binary := R /0b[0-1]+/
+
+hexadecimal := R /0x[0-9a-fA-F]+/
+
+lhs_expression :=
+  member_access
+  member_expression
+  lhs_expression "[" expression "]"
+
+self :=
+  "self"
+
+parenthesized_expression :=
+  "(" expression ")"
+
+new_expression :=
+  "new" call_expression
+
+call_expression :=
+  member_access "(" expression[] ")"
