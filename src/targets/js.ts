@@ -236,17 +236,27 @@ console.log(JSON.stringify(s, null, 2));`;
       node => outdent`
       const $${node.name} = () => {
         const c = _cursor;
-        let node;
+        let node, longest, longestEnd;
+        longestEnd = c;
         ${node.paths
           .map(
             path => `
         _cursor = c;
         node = {kind: ${node.quotedName()}};
-        if (${path.parts.map(atomic2JS).join(" && ")})
-          return node;
+        if (${path.parts.map(atomic2JS).join(" && ")}) {
+          if (_cursor >= longestEnd) {
+            longestEnd = _cursor;
+            longest = node;
+          }
+        }
         `
           )
           .join("")}
+          if (longest) {
+            _cursor = longestEnd;
+            return longest;
+          }
+
         _cursor = c;
       };`
     );
@@ -256,7 +266,9 @@ console.log(JSON.stringify(s, null, 2));`;
       node => outdent`
       const $${node.name} = () => {
         const c = _cursor;
-        let value, tmp;
+        let value, tmp, longest, longestEnd;
+        longestEnd = c;
+
         ${node.paths
           .map(
             path => `
@@ -265,11 +277,21 @@ console.log(JSON.stringify(s, null, 2));`;
         if (${path.parts
           .map(atomic2JS)
           .map(v => (v[0] !== "!" ? `((tmp = ${v}), (value += tmp), tmp)` : v))
-          .join(" && ")})
-          return {kind: ${node.quotedName()}, value};
+          .join(" && ")}) {
+            if (_cursor >= longestEnd) {
+              longest = {kind: ${node.quotedName()}, value};
+              longestEnd = _cursor;
+            }
+          }
         `
           )
           .join("")}
+
+          if (longest) {
+            _cursor = longestEnd;
+            return longest;
+          }
+
         _cursor = c;
       };`
     );
@@ -284,9 +306,9 @@ console.log(JSON.stringify(s, null, 2));`;
         ),
       node => outdent`
       const $${node.name} = () => ${node.paths
-        .map(
-          path => `terminal(${(path.parts[0] as TerminalAtomic).quotedValue()})`
-        )
+        .map(p => p.parts[0] as TerminalAtomic)
+        .sort((a, b) => b.value.length - a.value.length)
+        .map(atomic => `terminal(${atomic.quotedValue()})`)
         .join(" || ")};
       `
     );
@@ -296,7 +318,8 @@ console.log(JSON.stringify(s, null, 2));`;
       node => outdent`
       const $${node.name} = () => {
         const c = _cursor;
-        let value, tmp;
+        let value, tmp, longest, le;
+        longest = "";
         ${node.paths
           .map(
             path => `
@@ -305,11 +328,20 @@ console.log(JSON.stringify(s, null, 2));`;
         if (${path.parts
           .map(atomic2JS)
           .map(v => (v[0] !== "!" ? `((tmp = ${v}), (value += tmp), tmp)` : v))
-          .join(" && ")})
-          return value;
+          .join(" && ")}) {
+            if (value.length > longest.length) {
+              le = _cursor;
+              longest = value;
+            }
+          }
         `
           )
           .join("")}
+          if (longest) {
+            _cursor = le;
+            return longest;
+          }
+
         _cursor = c;
       };`
     );
