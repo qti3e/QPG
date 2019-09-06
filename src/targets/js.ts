@@ -12,7 +12,7 @@ import {
 class JSTarget extends Target {
   protected indent = "  ";
   protected header = `// QPG :)
-const parser = (function Parser() {
+module.exports.parser = (function Parser() {
   let _source, _cursor;
 
   function getSkippedCursor() {
@@ -93,10 +93,7 @@ const parser = (function Parser() {
       return $SOURCE();
     }
   };
-})();
-
-const s = parser.parse("from 'x' import a");
-console.log(JSON.stringify(s, null, 2));`;
+})();`;
 
   constructor() {
     super();

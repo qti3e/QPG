@@ -1,15 +1,25 @@
 {
   "name": "qpg",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "0.0.1",
+  "main": "./dist/src/main.js",
   "author": "Parsa Ghadimi <me@qti3e.com>",
   "license": "MIT",
+  "homepage": "https://github.com/qti3e/QPG#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/qti3e/QPG.git"
+  },
   "devDependencies": {
+    "@types/minimist": "^1.2.0",
+    "@types/node": "^12.7.2",
     "ts-node": "^8.3.0",
     "tslib": "^1.10.0",
     "typescript": "^3.5.3"
   },
   "dependencies": {
-    "@types/node": "^12.7.2"
+    "minimist": "^1.2.0"
+  },
+  "bin": {
+    "qpg": "./dist/bin/qpg.js"
   }
 }

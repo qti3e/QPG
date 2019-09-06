@@ -51,12 +51,12 @@ keyword :=
 $identifier :=
   !keyword identifier_word
 
-identifier_word := R /[a-zA-Z_][a-zA-Z0-9_]*/
+identifier_word := /[a-zA-Z_][a-zA-Z0-9_]*/
 
 $string_literal :=
   single_quote
   double_quote
 
-single_quote := R /'(?:[^'\\]|\\.)*'/
-double_quote := R /"(?:[^"\\]|\\.)*"/
+single_quote := /'(?:[^'\\]|\\.)*'/
+double_quote := /"(?:[^"\\]|\\.)*"/
 

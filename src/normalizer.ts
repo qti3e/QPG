@@ -39,7 +39,7 @@ export class Normalizer {
     const visitAtomic = (atomic: Atomic): void => {
       if (atomic instanceof ReferenceAtomic) {
         const tmp = this.map.get(atomic.name);
-        if (!tmp) throw new Error("Name cannot be resolved.");
+        if (!tmp) throw new Error(`Name cannot be resolved "${atomic.name}".`);
         if (seen.has(tmp)) return;
         toVisit.push(tmp);
         return;

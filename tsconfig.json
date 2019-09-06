@@ -6,12 +6,14 @@
     "preserveConstEnums": true,
     "sourceMap": true,
     "downlevelIteration": true,
-    "noEmit": true,
+    "noEmit": false,
     "lib": ["es2015"],
     "allowSyntheticDefaultImports": true,
     "alwaysStrict": true,
-    "strict": true
+    "strict": true,
+    "outDir": "dist",
+    "declaration": true
   },
-  "include": ["src/**/*", "*.ts", "*.d.ts"],
+  "include": ["src/**/*", "bin/**/*", "*.ts", "*.d.ts"],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }
