@@ -4,29 +4,67 @@ import { getTarget } from "./generator";
 import "./targets/js";
 
 const content = `
-@SOURCE := @statements STATEMENT[]
+@SOURCE :=
+  -
+    @imports import_declaration[]
 
-STATEMENT :=
-  EXPRESSION_STATEMENT
+@import_declaration :=
+  - "from"
+    @module string_literal
+    "import"
+    @imports import_specifier[","]
 
-@EXPRESSION_STATEMENT :=
-  @expression EXPRESSION ";"
+@import_specifier :=
+  -
+    @name, store identifier
+  -
+    @name identifier
+    "as"
+    @store identifier
+  -
+    "*"
+    "as"
+    @all identifier
 
-EXPRESSION :=
-  ADD
+keyword :=
+  "from"
+  "import"
+  "as"
+  "let"
+  "const"
+  "imp"
+  "fun"
+  "self"
+  "class"
+  "extends"
+  "static"
+  "public"
+  "private"
+  "protected"
+  "readonly"
+  "constructor"
+  "new"
+  "return"
+  "yield"
+  "finish"
+  "if"
+  "for"
+  "in"
+  "has"
+  "continue"
+  "break"
 
-@BINARY ADD :=
-  MUL
-  ADD "+" MUL
-  ADD "-" MUL
+$identifier :=
+  !keyword identifier_word
 
-@BINARY MUL :=
-  NUM
-  MUL "*" NUM
-  MUL "/" NUM
+identifier_word := /[a-zA-Z_][a-zA-Z0-9_]*/
 
-$NUM := /\\d+/
+$string_literal :=
+  single_quote
+  double_quote
 
+single_quote := /'(?:[^'\\\\]|\\\\.)*'/
+double_quote := /"(?:[^"\\\\]|\\\\.)*"/
 `.trim();
 
 const parser = new Parser();

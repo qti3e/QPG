@@ -48,9 +48,8 @@ keyword :=
   "continue"
   "break"
 
-; $ Means it's a AST node but only catch the matched text as `value`.
-$identifier := NOT keyword
-  identifier_word
+$identifier :=
+  !keyword identifier_word
 
 identifier_word := R /[a-zA-Z_][a-zA-Z0-9_]*/
 

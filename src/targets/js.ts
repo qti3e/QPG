@@ -4,9 +4,10 @@ import {
   OneOfAtomic,
   ReferenceAtomic,
   TerminalAtomic,
-  RegExpAtomic
+  RegExpAtomic,
+  Atomic,
+  NotAtomic
 } from "../parser";
-import { notEqual } from "assert";
 
 class JSTarget extends Target {
   protected indent = "  ";
@@ -61,6 +62,27 @@ const parser = (function Parser() {
     return prev;
   };
 
+  const readArraySep = (cb, sep) => {
+    const ret = [];
+    while (true) {
+      const tmp = cb();
+      if (!tmp) break;
+      ret.push(tmp);
+      if (!terminal(sep)) break;
+    }
+    return ret;
+  };
+
+  const readArray = cb => {
+    const ret = [];
+    while (true) {
+      const tmp = cb();
+      if (!tmp) break;
+      ret.push(tmp);
+    }
+    return ret;
+  };
+
   // # -----END---- #
 `;
 
@@ -73,7 +95,7 @@ const parser = (function Parser() {
   };
 })();
 
-const s = parser.parse("3 + 4 * 5 2 - 5");
+const s = parser.parse("from 'x' import a");
 console.log(JSON.stringify(s, null, 2));`;
 
   constructor() {
@@ -182,8 +204,7 @@ console.log(JSON.stringify(s, null, 2));`;
       node => outdent`
       const $${node.name} = () => ${node.paths
         .map(path => `$${(path.parts[0] as ReferenceAtomic).name}()`)
-        .join(" ||\n")};
-      `
+        .join(" ||\n")};`
     );
 
     this.addPattern(
@@ -194,7 +215,7 @@ console.log(JSON.stringify(s, null, 2));`;
         node.paths.length === 1 &&
         node.paths[0].parts.every(
           atomic =>
-            (atomic instanceof ReferenceAtomic && !atomic.array) ||
+            atomic instanceof ReferenceAtomic ||
             atomic instanceof TerminalAtomic
         ),
       node => outdent`
@@ -202,33 +223,135 @@ console.log(JSON.stringify(s, null, 2));`;
         const c = _cursor;
         const node = {kind: ${node.quotedName()}};
 
-        if (!(${node.paths[0].parts
-          .map(atomic => {
-            let value: string;
-            if (atomic instanceof TerminalAtomic) {
-              value = `terminal(${atomic.quotedValue()})`;
-            } else if (atomic instanceof ReferenceAtomic) {
-              value = `$${atomic.name}()`;
-            } else throw new Error();
+        if (${node.paths[0].parts.map(atomic2JS).join(" && ")})
+          return node;
 
-            return (
-              "(" +
-              [...atomic.catches.map(name => `node["${name}"]`), value].join(
-                " = "
-              ) +
-              ")"
-            );
-          })
-          .join(" && ")})) {
-          _cursor = c;
-          return;
-        }
-
-        return node;
+        _cursor = c;
       }
       `
     );
+
+    this.addPattern(
+      node => node.isASTNode && !node.matchValue,
+      node => outdent`
+      const $${node.name} = () => {
+        const c = _cursor;
+        let node;
+        ${node.paths
+          .map(
+            path => `
+        _cursor = c;
+        node = {kind: ${node.quotedName()}};
+        if (${path.parts.map(atomic2JS).join(" && ")})
+          return node;
+        `
+          )
+          .join("")}
+        _cursor = c;
+      };`
+    );
+
+    this.addPattern(
+      node => node.isASTNode && node.matchValue,
+      node => outdent`
+      const $${node.name} = () => {
+        const c = _cursor;
+        let value, tmp;
+        ${node.paths
+          .map(
+            path => `
+        _cursor = c;
+        value = "";
+        if (${path.parts
+          .map(atomic2JS)
+          .map(v => (v[0] !== "!" ? `((tmp = ${v}), (value += tmp), tmp)` : v))
+          .join(" && ")})
+          return {kind: ${node.quotedName()}, value};
+        `
+          )
+          .join("")}
+        _cursor = c;
+      };`
+    );
+
+    this.addPattern(
+      node =>
+        !node.isASTNode &&
+        !node.hasCatch() &&
+        node.paths.every(
+          path =>
+            path.parts.length === 1 && path.parts[0] instanceof TerminalAtomic
+        ),
+      node => outdent`
+      const $${node.name} = () => ${node.paths
+        .map(
+          path => `terminal(${(path.parts[0] as TerminalAtomic).quotedValue()})`
+        )
+        .join(" || ")};
+      `
+    );
+
+    this.addPattern(
+      node => !node.isASTNode,
+      node => outdent`
+      const $${node.name} = () => {
+        const c = _cursor;
+        let value, tmp;
+        ${node.paths
+          .map(
+            path => `
+        _cursor = c;
+        value = "";
+        if (${path.parts
+          .map(atomic2JS)
+          .map(v => (v[0] !== "!" ? `((tmp = ${v}), (value += tmp), tmp)` : v))
+          .join(" && ")})
+          return value;
+        `
+          )
+          .join("")}
+        _cursor = c;
+      };`
+    );
   }
+}
+
+function atomic2JS(atomic: Atomic): string {
+  if (
+    atomic instanceof TerminalAtomic ||
+    atomic instanceof ReferenceAtomic ||
+    atomic instanceof RegExpAtomic
+  ) {
+    let value: string;
+    if (atomic instanceof TerminalAtomic) {
+      value = `terminal(${atomic.quotedValue()})`;
+    } else if (atomic instanceof RegExpAtomic) {
+      value = `regExp(${atomic.source})`;
+    } else {
+      value = `$${atomic.name}()`;
+      if (atomic.array) {
+        if (atomic.array.separator) {
+          value = `readArraySep($${
+            atomic.name
+          }, ${atomic.array.separator.quotedValue()})`;
+        } else {
+          value = `readArray($${atomic.name})`;
+        }
+      }
+    }
+
+    return (
+      "(" +
+      [...atomic.catches.map(name => `node["${name}"]`), value].join(" = ") +
+      ")"
+    );
+  }
+
+  if (atomic instanceof NotAtomic) {
+    return `!(${atomic2JS(atomic.part)})`;
+  }
+
+  return atomic.alternates.map(a => atomic2JS(a)).join(" || ");
 }
 
 registerLanguage("js", new JSTarget());

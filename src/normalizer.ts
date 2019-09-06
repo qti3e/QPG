@@ -4,7 +4,8 @@ import {
   OneOfAtomic,
   ReferenceAtomic,
   TerminalAtomic,
-  Atomic
+  Atomic,
+  NotAtomic
 } from "./parser";
 
 export class Normalizer {
@@ -45,8 +46,11 @@ export class Normalizer {
       }
 
       if (atomic instanceof OneOfAtomic) {
-        atomic.alternates.map(atomic => visitAtomic(atomic));
-        return;
+        return void atomic.alternates.map(atomic => visitAtomic(atomic));
+      }
+
+      if (atomic instanceof NotAtomic) {
+        return visitAtomic(atomic.part);
       }
     };
 
